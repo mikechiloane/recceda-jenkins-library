@@ -11,7 +11,7 @@ To use this shared library, you must configure it as a "Global Pipeline Library"
 3.  Click **Add**.
 4.  Set the following:
     *   **Name:** `recceda-jenkins-library` (This name is used in your project's `Jenkinsfile`).
-    *   **Default version:** `main` (or your preferred branch/tag, e.g., `master`, `v1.0`).
+    *   **Default version:** `main` (This field is mandatory. It tells Jenkins which branch or tag to use, e.g., `main`, `master`, `v1.0`).
     *   **Retrieval method:** `Modern SCM`.
     *   **Source Code Management:** `Git`.
     *   **Project Repository:** Enter the URL to this Git repository (e.g., `https://github.com/your-org/recceda-jenkins-library.git`).
