@@ -1,17 +1,18 @@
-def call(Map config = [:]) {
+def call(Map config) {
+    def defaultConfig = [
+        runTest: true,
+        runBuild: true,
+        runDeploy: false
+    ]
+    config = defaultConfig + config
+
     pipeline {
         agent any
-
-        parameters {
-            booleanParam(name: 'runTest', defaultValue: true, description: 'Run tests?')
-            booleanParam(name: 'runBuild', defaultValue: true, description: 'Run build?')
-            booleanParam(name: 'runDeploy', defaultValue: false, description: 'Run deploy?')
-        }
 
         stages {
             stage('Test') {
                 when {
-                    expression { params.runTest }
+                    expression { config.runTest }
                 }
                 steps {
                     script {
@@ -24,7 +25,7 @@ def call(Map config = [:]) {
 
             stage('Build') {
                 when {
-                    expression { params.runBuild }
+                    expression { config.runBuild }
                 }
                 steps {
                     script {
@@ -37,7 +38,7 @@ def call(Map config = [:]) {
 
             stage('Deploy') {
                 when {
-                    expression { params.runDeploy }
+                    expression { config.runDeploy }
                 }
                 steps {
                     script {
