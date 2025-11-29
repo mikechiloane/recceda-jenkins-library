@@ -7,7 +7,7 @@ def call(Map config) {
             dockerhubCredentialId    : 'DOCKER_HUB_CREDS',
             dockerhubUsernameSecretId: 'DOCKER_USERNAME',
             pushLatestTag            : true,
-            buildAmdImage            : false
+            dockerBuildPlatform      : ''
     ]
 
     config = defaultConfig + config
@@ -67,6 +67,21 @@ def call(Map config) {
                 }
             }
 
+            stage('Check Docker') {
+                when {
+                    expression { config.runDeploy }
+                }
+                steps {
+                    script {
+                        echo "Checking Docker daemon connection..."
+                        def dockerInfoResult = sh(script: 'docker info', returnStatus: true)
+                        if (dockerInfoResult != 0) {
+                            error "Could not connect to Docker daemon. Please ensure Docker is running and accessible."
+                        }
+                    }
+                }
+            }
+
             stage('Build Docker Image') {
                 when {
                     expression { config.runDeploy }
@@ -88,16 +103,15 @@ def call(Map config) {
                             sh 'docker --version'
 
                             // Build and tag with version
-                            def platformFlag = config.buildAmdImage ? '--platform=linux/amd64' : ''
-                            sh """
-                                docker build ${platformFlag} -t ${imageName}:${appVersion} .
-                            """
+                            def platformFlag = ''
+                            if (config.dockerBuildPlatform) {
+                                platformFlag = '--platform=' + config.dockerBuildPlatform
+                            }
+                            sh 'docker build ' + platformFlag + ' -t ' + imageName + ':' + appVersion + ' .'
 
                             // Also tag as latest if enabled
                             if (config.pushLatestTag) {
-                                sh """
-                                    docker tag ${imageName}:${appVersion} ${imageName}:latest
-                                """
+                                sh 'docker tag ' + imageName + ':' + appVersion + ' ' + imageName + ':latest'
                             }
                         }
                     }
@@ -135,15 +149,11 @@ def call(Map config) {
                             echo "Login successful. Pushing ${imageName}:${appVersion}"
 
                             // Push versioned tag using sh with multi-line string to avoid interpolation warning
-                            sh """
-                                docker push ${imageName}:${appVersion}
-                            """
+                            sh 'docker push ' + imageName + ':' + appVersion
 
                             // Push latest tag if enabled
                             if (config.pushLatestTag) {
-                                sh """
-                                    docker push ${imageName}:latest
-                                """
+                                sh 'docker push ' + imageName + ':latest'
                             }
 
                             echo "Logging out from Docker Hub..."
@@ -162,10 +172,8 @@ def call(Map config) {
                             string(credentialsId: config.dockerhubUsernameSecretId, variable: 'DOCKER_USERNAME')
                     ]) {
                         def imageName = "${DOCKER_USERNAME}/${config.imageName}"
-                        sh """
-                            docker rmi ${imageName}:${appVersion} || true
-                            docker rmi ${imageName}:latest || true
-                        """
+                        sh 'docker rmi ' + imageName + ':' + appVersion + ' || true'
+                        sh 'docker rmi ' + imageName + ':latest || true'
                     }
                 }
             }
