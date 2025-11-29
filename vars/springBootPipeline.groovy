@@ -76,17 +76,26 @@ def call(Map config) {
                                 string(credentialsId: config.dockerhubUsernameSecretId, variable: 'DOCKER_USERNAME')
                         ]) {
                             echo "Building Docker image with version: ${appVersion}"
-                            def imageName = "${DOCKER_USERNAME}/${config.imageName}"
+
+                            // Clean the username in case it has extra characters
+                            def cleanUsername = DOCKER_USERNAME.trim()
+                            def imageName = "${cleanUsername}/${config.imageName}"
+
+                            echo "Image name: ${imageName}:${appVersion}"
 
                             // Verify Docker is available
                             sh 'docker --version'
 
                             // Build and tag with version
-                            sh "docker build -t ${imageName}:${appVersion} ."
+                            sh """
+                                docker build -t ${imageName}:${appVersion} .
+                            """
 
                             // Also tag as latest if enabled
                             if (config.pushLatestTag) {
-                                sh "docker tag ${imageName}:${appVersion} ${imageName}:latest"
+                                sh """
+                                    docker tag ${imageName}:${appVersion} ${imageName}:latest
+                                """
                             }
                         }
                     }
@@ -106,12 +115,12 @@ def call(Map config) {
                                         passwordVariable: 'DOCKER_PASS')
                         ]) {
                             echo "Verifying Docker credentials..."
-                            echo "Docker username from secret: ${DOCKER_USERNAME}"
-                            echo "Docker login username: ${DOCKER_USER}"
 
-                            def imageName = "${DOCKER_USERNAME}/${config.imageName}"
+                            // Clean the username
+                            def cleanUsername = env.DOCKER_USERNAME.trim()
+                            def imageName = "${cleanUsername}/${config.imageName}"
 
-                            echo "Logging in to Docker Hub..."
+                            echo "Logging in to Docker Hub as: ${env.DOCKER_USER}"
                             def loginResult = sh(
                                     script: 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin',
                                     returnStatus: true
@@ -121,14 +130,18 @@ def call(Map config) {
                                 error "Docker login failed! Check your credentials."
                             }
 
-                            echo "Login successful. Pushing image to Docker Hub with version: ${appVersion}"
+                            echo "Login successful. Pushing ${imageName}:${appVersion}"
 
-                            // Push versioned tag
-                            sh "docker push ${imageName}:${appVersion}"
+                            // Push versioned tag using sh with multi-line string to avoid interpolation warning
+                            sh """
+                                docker push ${imageName}:${appVersion}
+                            """
 
                             // Push latest tag if enabled
                             if (config.pushLatestTag) {
-                                sh "docker push ${imageName}:latest"
+                                sh """
+                                    docker push ${imageName}:latest
+                                """
                             }
 
                             echo "Logging out from Docker Hub..."
