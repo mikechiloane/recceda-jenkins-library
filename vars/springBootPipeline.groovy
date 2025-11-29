@@ -1,11 +1,14 @@
-def defaultConfig = [
-        runTest                  : true,
-        runBuild                 : true,
-        runDeploy                : false,
-        imageName                : 'your-image-name',
-        dockerhubCredentialId    : env.DOCKER_HUB_LOGIN_CREDENTIAL_ID ?: 'dockerhub-login-creds', // ID of Username/Password cred
-        dockerhubUsernameSecretId: env.DOCKER_HUB_USERNAME_SECRET_ID ?: 'dockerhub-username-secret' // ID of Secret Text cred with username
-]
+def call(Map config) {
+    def defaultConfig = [
+            runTest                  : true,
+            runBuild                 : true,
+            runDeploy                : false,
+            imageName                : 'your-image-name',
+            dockerhubCredentialId    : env.DOCKER_HUB_LOGIN_CREDENTIAL_ID ?: 'dockerhub-login-creds', // ID of Username/Password cred
+            dockerhubUsernameSecretId: env.DOCKER_HUB_USERNAME_SECRET_ID ?: 'dockerhub-username-secret' // ID of Secret Text cred with username
+    ]
+}
+
 config = defaultConfig + config
 
 def appVersion // This will hold the determined version

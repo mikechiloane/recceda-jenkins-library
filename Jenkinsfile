@@ -3,6 +3,6 @@
 springBootPipeline(
     runTest: true,
     runBuild: true,
-    runDeploy: false
-    buildDockerImage:false
+    runDeploy: false,
+    imageName: 'recceda/example'
 )
