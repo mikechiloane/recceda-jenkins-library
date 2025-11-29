@@ -4,16 +4,18 @@ def call(Map config) {
             runBuild                 : true,
             runDeploy                : false,
             imageName                : 'your-image-name',
-            dockerhubCredentialId    : 'DOCKER_USERNAME',
-            dockerhubUsernameSecretId: 'DOCKER_HUB_CREDENTIAL_ID'
+            dockerhubCredentialId    : 'DOCKER_HUB_CRED',
+            dockerhubUsernameSecretId: 'DOCKER_USERNAME',
+            pushLatestTag            : true
     ]
 
     config = defaultConfig + config
 
-    def appVersion // This will hold the determined version
+    def appVersion
 
     pipeline {
         agent any
+
         tools {
             maven 'maven'
         }
@@ -48,7 +50,7 @@ def call(Map config) {
                 }
             }
 
-            stage('Build') {
+            stage('Build Jar Artifact') {
                 when {
                     expression { config.runBuild }
                 }
@@ -67,12 +69,16 @@ def call(Map config) {
                 steps {
                     script {
                         withCredentials([
-                                string(credentialsId: config.dockerhubUsernameSecretId, variable: 'DOCKER_USERNAME_FOR_IMAGE'),
-                                usernamePassword(credentialsId: config.dockerhubCredentialId, usernameVariable: 'UNUSED_USERNAME', passwordVariable: 'UNUSED_PASSWORD') // Need a dummy variable for usernamePassword if not directly used in this block.
+                                string(credentialsId: config.dockerhubUsernameSecretId, variable: 'DOCKER_USERNAME')
                         ]) {
                             echo "Building Docker image with version: ${appVersion}"
-                            def imageName = "${DOCKER_USERNAME_FOR_IMAGE}/${config.imageName}:${appVersion}"
-                            docker.build(imageName, '.')
+                            def imageName = "${DOCKER_USERNAME}/${config.imageName}"
+
+                            docker.build("${imageName}:${appVersion}", '.')
+
+                            if (config.pushLatestTag) {
+                                sh "docker tag ${imageName}:${appVersion} ${imageName}:latest"
+                            }
                         }
                     }
                 }
@@ -85,13 +91,20 @@ def call(Map config) {
                 steps {
                     script {
                         withCredentials([
-                                string(credentialsId: config.dockerhubUsernameSecretId, variable: 'DOCKER_USERNAME_FOR_IMAGE'),
-                                usernamePassword(credentialsId: config.dockerhubCredentialId, usernameVariable: 'DOCKER_LOGIN_USERNAME', passwordVariable: 'DOCKER_LOGIN_PASSWORD')
+                                string(credentialsId: config.dockerhubUsernameSecretId, variable: 'DOCKER_USERNAME')
                         ]) {
                             echo "Pushing image to Docker Hub with version: ${appVersion}"
+
                             docker.withRegistry('https://index.docker.io/v1/', config.dockerhubCredentialId) {
-                                def imageName = "${DOCKER_USERNAME_FOR_IMAGE}/${config.imageName}:${appVersion}"
-                                docker.image(imageName).push()
+                                def imageName = "${DOCKER_USERNAME}/${config.imageName}"
+
+                                // Push versioned tag
+                                docker.image("${imageName}:${appVersion}").push()
+
+                                // Push latest tag if enabled
+                                if (config.pushLatestTag) {
+                                    docker.image("${imageName}:latest").push()
+                                }
                             }
                         }
                     }
@@ -99,6 +112,28 @@ def call(Map config) {
             }
         }
 
+        post {
+            always {
+                script {
+                    // Clean up Docker images to save space
+                    withCredentials([
+                            string(credentialsId: config.dockerhubUsernameSecretId, variable: 'DOCKER_USERNAME')
+                    ]) {
+                        def imageName = "${DOCKER_USERNAME}/${config.imageName}"
+                        sh """
+                            docker rmi ${imageName}:${appVersion} || true
+                            docker rmi ${imageName}:latest || true
+                        """
+                    }
+                }
+            }
+            success {
+                echo "Pipeline completed successfully!"
+                echo "Docker image pushed: ${appVersion}"
+            }
+            failure {
+                echo "Pipeline failed. Check the logs for details."
+            }
+        }
     }
-
 }
