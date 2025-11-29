@@ -4,7 +4,7 @@ def call(Map config) {
             runBuild                 : true,
             runDeploy                : false,
             imageName                : 'your-image-name',
-            dockerhubCredentialId    : 'DOCKER_HUB_CREDS',
+            dockerhubCredentialId    : 'DOCKER_HUB_CRED',
             dockerhubUsernameSecretId: 'DOCKER_USERNAME',
             pushLatestTag            : true
     ]
@@ -78,6 +78,9 @@ def call(Map config) {
                             echo "Building Docker image with version: ${appVersion}"
                             def imageName = "${DOCKER_USERNAME}/${config.imageName}"
 
+                            // Verify Docker is available
+                            sh 'docker --version'
+
                             // Build and tag with version
                             sh "docker build -t ${imageName}:${appVersion} ."
 
@@ -102,11 +105,23 @@ def call(Map config) {
                                         usernameVariable: 'DOCKER_USER',
                                         passwordVariable: 'DOCKER_PASS')
                         ]) {
-                            echo "Logging in to Docker Hub..."
-                            sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                            echo "Verifying Docker credentials..."
+                            echo "Docker username from secret: ${DOCKER_USERNAME}"
+                            echo "Docker login username: ${DOCKER_USER}"
 
-                            echo "Pushing image to Docker Hub with version: ${appVersion}"
                             def imageName = "${DOCKER_USERNAME}/${config.imageName}"
+
+                            echo "Logging in to Docker Hub..."
+                            def loginResult = sh(
+                                    script: 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin',
+                                    returnStatus: true
+                            )
+
+                            if (loginResult != 0) {
+                                error "Docker login failed! Check your credentials."
+                            }
+
+                            echo "Login successful. Pushing image to Docker Hub with version: ${appVersion}"
 
                             // Push versioned tag
                             sh "docker push ${imageName}:${appVersion}"
