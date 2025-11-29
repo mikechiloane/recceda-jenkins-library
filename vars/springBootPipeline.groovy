@@ -4,8 +4,8 @@ def call(Map config) {
             runBuild                 : true,
             runDeploy                : false,
             imageName                : 'your-image-name',
-            dockerhubCredentialId    : env.DOCKER_HUB_LOGIN_CREDENTIAL_ID ?: 'dockerhub-login-creds', // ID of Username/Password cred
-            dockerhubUsernameSecretId: env.DOCKER_HUB_USERNAME_SECRET_ID ?: 'dockerhub-username-secret' // ID of Secret Text cred with username
+            dockerhubCredentialId    : 'DOCKER_USERNAME',
+            dockerhubUsernameSecretId: 'DOCKER_HUB_CREDENTIAL_ID'
     ]
 
     config = defaultConfig + config
