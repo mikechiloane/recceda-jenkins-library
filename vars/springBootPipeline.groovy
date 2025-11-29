@@ -4,7 +4,7 @@ def call(Map config) {
             runBuild                 : true,
             runDeploy                : false,
             imageName                : 'your-image-name',
-            dockerhubCredentialId    : 'DOCKER_HUB_CRED',
+            dockerhubCredentialId    : 'DOCKER_HUB_CREDS',
             dockerhubUsernameSecretId: 'DOCKER_USERNAME',
             pushLatestTag            : true
     ]
