@@ -9,12 +9,11 @@ def call(Map config) {
     ]
     config = defaultConfig + config
 
-    def appVersion // This will hold the determined version
-
+    def appVersion
     pipeline {
         agent any
         tools {
-            maven 'M3' // Use the name of your Maven installation configured in Jenkins
+            maven 'maven'
         }
 
         stages {
