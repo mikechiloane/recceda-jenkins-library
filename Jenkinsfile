@@ -4,4 +4,5 @@ springBootPipeline(
     runTest: true,
     runBuild: true,
     runDeploy: false
+    buildDockerImage:false
 )
