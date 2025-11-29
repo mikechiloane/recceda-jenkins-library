@@ -6,7 +6,8 @@ def call(Map config) {
             imageName                : 'your-image-name',
             dockerhubCredentialId    : 'DOCKER_HUB_CREDS',
             dockerhubUsernameSecretId: 'DOCKER_USERNAME',
-            pushLatestTag            : true
+            pushLatestTag            : true,
+            buildAmdImage            : false
     ]
 
     config = defaultConfig + config
@@ -87,8 +88,9 @@ def call(Map config) {
                             sh 'docker --version'
 
                             // Build and tag with version
+                            def platformFlag = config.buildAmdImage ? '--platform=linux/amd64' : ''
                             sh """
-                                docker build -t ${imageName}:${appVersion} .
+                                docker build ${platformFlag} -t ${imageName}:${appVersion} .
                             """
 
                             // Also tag as latest if enabled
