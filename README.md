@@ -27,51 +27,35 @@ Here's an example `Jenkinsfile`:
 ```groovy
 @Library('recceda-jenkins-library') _
 
-springBootPipeline(
-    runTest: true,
-    runBuild: true,
-    runDeploy: true,
-    imageName: 'your-docker-image-name',
-    dockerhubCredentialId: 'YOUR_DOCKERHUB_CREDENTIAL_ID',
-    dockerhubUsernameSecretId: 'YOUR_DOCKERHUB_USERNAME_SECRET_ID',
-    pushLatestTag: true,
-    dockerBuildPlatform: 'linux/amd64'
-)
+springBootPipeline {
+    runTest = true
+    runBuild = true
+    runDeploy = false
+}
 ```
 
 ### Pipeline Parameters
 
-The `springBootPipeline` accepts the following parameters to control which stages are executed:
+The `springBootPipeline` accepts the following boolean parameters to control which stages are executed:
 
 *   `runTest` (default: `true`): If `true`, the "Test" stage will execute `mvn test`.
 *   `runBuild` (default: `true`): If `true`, the "Build" stage will execute `mvn package`.
-*   `runDeploy` (default: `false`): If `true`, the pipeline will build a Docker image and push it to Docker Hub.
-*   `imageName` (default: `'your-image-name'`): The name of the Docker image to build.
-*   `dockerhubCredentialId` (default: `'DOCKER_HUB_CREDS'`): The ID of the Jenkins credentials for Docker Hub (username/password).
-*   `dockerhubUsernameSecretId` (default: `'DOCKER_USERNAME'`): The ID of the Jenkins secret text credential for the Docker Hub username. This is used for tagging the image.
-*   `pushLatestTag` (default: `true`): If `true`, the pipeline will push a `latest` tag to Docker Hub.
-*   `dockerBuildPlatform` (default: `''`): The platform to build the Docker image for (e.g., `'linux/amd64'`, `'linux/arm64'`). If empty, it uses the build agent's default platform.
+*   `runDeploy` (default: `false`): If `true`, the "Deploy" stage will run. **Note: This stage is a placeholder and requires implementation specific to your deployment environment.**
 
 ### Pipeline Stages
 
 The `springBootPipeline` includes the following stages:
 
-1.  **Resolve Version**: Determines the application version from the Git tag or pom.xml and commit hash.
-2.  **Test**:
+1.  **Test:**
     *   Executes `mvn test`.
     *   Runs only if `runTest` is `true`.
-3.  **Build**:
+2.  **Build:**
     *   Executes `mvn package`.
     *   Runs only if `runBuild` is `true`.
-4.  **Check Docker**:
-    *   Checks if the Docker daemon is running and accessible.
+3.  **Deploy:**
+    *   Currently, this stage contains a placeholder `echo "Deployment step is a placeholder."`.
     *   Runs only if `runDeploy` is `true`.
-5.  **Build Docker Image**:
-    *   Builds a Docker image for your application.
-    *   Runs only if `runDeploy` is `true`.
-6.  **Push to Docker Hub**:
-    *   Pushes the Docker image to Docker Hub.
-    *   Runs only if `runDeploy` is `true`.
+    *   **You must customize the `vars/springBootPipeline.groovy` file to add your actual deployment logic.**
 
 ## Customization
 
