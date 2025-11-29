@@ -78,9 +78,6 @@ def call(Map config) {
                             echo "Building Docker image with version: ${appVersion}"
                             def imageName = "${DOCKER_USERNAME}/${config.imageName}"
 
-                            // Verify Docker is available
-                            sh 'docker --version'
-
                             // Build and tag with version
                             sh "docker build -t ${imageName}:${appVersion} ."
 
