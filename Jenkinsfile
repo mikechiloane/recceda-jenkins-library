@@ -8,4 +8,6 @@ springBootPipeline(
             dockerhubCredentialId    : 'DOCKER_HUB_CRED',
             dockerhubUsernameSecretId: 'DOCKER_USERNAME',
             pushLatestTag            : true
+            buildAmdImage            : false
+
 )
