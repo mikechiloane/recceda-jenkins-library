@@ -20,6 +20,10 @@ def call(Map config) {
             maven 'maven'
         }
 
+        environment {
+            PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:${env.PATH}"
+        }
+
         stages {
             stage('Resolve Version') {
                 steps {
@@ -50,7 +54,7 @@ def call(Map config) {
                 }
             }
 
-            stage('Build Jar Artifact') {
+            stage('Build') {
                 when {
                     expression { config.runBuild }
                 }
@@ -74,8 +78,13 @@ def call(Map config) {
                             echo "Building Docker image with version: ${appVersion}"
                             def imageName = "${DOCKER_USERNAME}/${config.imageName}"
 
-                            docker.build("${imageName}:${appVersion}", '.')
+                            // Verify Docker is available
+                            sh 'docker --version'
 
+                            // Build and tag with version
+                            sh "docker build -t ${imageName}:${appVersion} ."
+
+                            // Also tag as latest if enabled
                             if (config.pushLatestTag) {
                                 sh "docker tag ${imageName}:${appVersion} ${imageName}:latest"
                             }
@@ -91,21 +100,27 @@ def call(Map config) {
                 steps {
                     script {
                         withCredentials([
-                                string(credentialsId: config.dockerhubUsernameSecretId, variable: 'DOCKER_USERNAME')
+                                string(credentialsId: config.dockerhubUsernameSecretId, variable: 'DOCKER_USERNAME'),
+                                usernamePassword(credentialsId: config.dockerhubCredentialId,
+                                        usernameVariable: 'DOCKER_USER',
+                                        passwordVariable: 'DOCKER_PASS')
                         ]) {
+                            echo "Logging in to Docker Hub..."
+                            sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+
                             echo "Pushing image to Docker Hub with version: ${appVersion}"
+                            def imageName = "${DOCKER_USERNAME}/${config.imageName}"
 
-                            docker.withRegistry('https://index.docker.io/v1/', config.dockerhubCredentialId) {
-                                def imageName = "${DOCKER_USERNAME}/${config.imageName}"
+                            // Push versioned tag
+                            sh "docker push ${imageName}:${appVersion}"
 
-                                // Push versioned tag
-                                docker.image("${imageName}:${appVersion}").push()
-
-                                // Push latest tag if enabled
-                                if (config.pushLatestTag) {
-                                    docker.image("${imageName}:latest").push()
-                                }
+                            // Push latest tag if enabled
+                            if (config.pushLatestTag) {
+                                sh "docker push ${imageName}:latest"
                             }
+
+                            echo "Logging out from Docker Hub..."
+                            sh 'docker logout'
                         }
                     }
                 }
